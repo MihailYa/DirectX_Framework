@@ -61,5 +61,5 @@ c:\program files (x86)\microsoft directx sdk (june 2010)\include\d3d10.h(609): w
   InputMgr.cpp
   Framework.cpp
   Generating Code...
-c:\users\mikleya\documents\visual studio 2015\projects\github\directx\directx_framework\directx framework\directx framework\render.cpp(109): warning C4715: 'D3D11Framework::Render::CreateDevice': not all control paths return a value
+c:\users\mikleya\documents\visual studio 2015\projects\github\directx\directx_framework\directx framework\directx framework\render.cpp(137): warning C4715: 'D3D11Framework::Render::CreateDevice': not all control paths return a value
   DirectX Framework.vcxproj -> C:\Users\MikleYa\Documents\Visual Studio 2015\Projects\GitHub\DirectX\DirectX_Framework\DirectX Framework\\lib\DirectX Framework_d.lib

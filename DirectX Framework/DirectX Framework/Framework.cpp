@@ -5,7 +5,6 @@
 namespace D3D11Framework
 {
 	//------------------------------------------------------------------
-
 	Framework::Framework() :
 		m_wnd(nullptr),
 		m_render(nullptr),
@@ -30,8 +29,10 @@ namespace D3D11Framework
 			while (m_frame());
 	}
 
-	bool Framework::Init()
+	bool Framework::Init(const FrameworkDesc &desc)
 	{
+		m_render = desc.render;
+
 		m_wnd = new Window();
 		m_input = new InputMgr();
 
@@ -43,9 +44,7 @@ namespace D3D11Framework
 
 		m_input->Init();
 
-		// Создаем значения настроек по умолчанию.
-		DescWindow desc;
-		if (!m_wnd->Create(desc))
+		if (!m_wnd->Create(desc.wnd))
 		{
 			Log::Get()->Err("Не удалось создать окно");
 			return false;

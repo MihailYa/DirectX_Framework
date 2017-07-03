@@ -14,6 +14,8 @@ namespace D3D11Framework
 		m_pImmediateContext = nullptr;
 		m_pSwapChain = nullptr;
 		m_pRenderTargetView = nullptr;
+		m_pDepthStencil = nullptr;
+		m_pDepthStencilView = nullptr;
 	}
 
 	Render::~Render()
@@ -94,8 +96,34 @@ namespace D3D11Framework
 		if (FAILED(hr))
 			return false;
 
+		D3D11_TEXTURE2D_DESC descDepth;
+		ZeroMemory(&descDepth, sizeof(descDepth));
+		descDepth.Width = width;
+		descDepth.Height = height;
+		descDepth.MipLevels = 1;
+		descDepth.ArraySize = 1;
+		descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		descDepth.SampleDesc.Count = 1;
+		descDepth.SampleDesc.Quality = 0;
+		descDepth.Usage = D3D11_USAGE_DEFAULT;
+		descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		descDepth.CPUAccessFlags = 0;
+		descDepth.MiscFlags = 0;
+		hr = m_pd3dDevice->CreateTexture2D(&descDepth, NULL, &m_pDepthStencil);
+		if (FAILED(hr))
+			return false;
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
+		ZeroMemory(&descDSV, sizeof(descDSV));
+		descDSV.Format = descDepth.Format;
+		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		descDSV.Texture2D.MipSlice = 0;
+		hr = m_pd3dDevice->CreateDepthStencilView(m_pDepthStencil, &descDSV, &m_pDepthStencilView);
+		if (FAILED(hr))
+			return false;
+
 		//Присоединение render target к конвееру рендеринга (rendering pipeline)
-		m_pImmediateContext->OMSetRenderTargets(1, &m_pRenderTargetView, NULL);
+		m_pImmediateContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
 
 		//Viewport
 		D3D11_VIEWPORT vp;
@@ -112,6 +140,7 @@ namespace D3D11Framework
 		//Очистка окна
 		float ClearColor[4] = { 0.0f, 0.125f, 0.3f, 1.0f }; //красный,зеленый,синий,альфа
 		m_pImmediateContext->ClearRenderTargetView(m_pRenderTargetView, ClearColor);
+		m_pImmediateContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
 	void Render::EndFrame()
@@ -127,10 +156,30 @@ namespace D3D11Framework
 		if (m_pImmediateContext)
 			m_pImmediateContext->ClearState();
 
+		_RELEASE(m_pDepthStencil);
+		_RELEASE(m_pDepthStencilView);
 		_RELEASE(m_pRenderTargetView);
 		_RELEASE(m_pSwapChain);
 		_RELEASE(m_pImmediateContext);
 		_RELEASE(m_pd3dDevice);
+	}
+
+	HRESULT Render::m_compileshaderfromfile(WCHAR* FileName, LPCSTR EntryPoint, LPCSTR ShaderModel, ID3DBlob** ppBlobOut)
+	{
+		HRESULT hr = S_OK;
+
+		DWORD ShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined( DEBUG ) || defined( _DEBUG )
+		ShaderFlags |= D3DCOMPILE_DEBUG;
+#endif
+
+		ID3DBlob* pErrorBlob;
+		hr = D3DX11CompileFromFile(FileName, NULL, NULL, EntryPoint, ShaderModel, ShaderFlags, 0, NULL, ppBlobOut, &pErrorBlob, NULL);
+		if (FAILED(hr) && pErrorBlob != NULL)
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+
+		_RELEASE(pErrorBlob);
+		return hr;
 	}
 
 	//------------------------------------------------------------------
