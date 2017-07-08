@@ -21,6 +21,8 @@ namespace D3D11Framework
 		Framework();
 		~Framework();
 
+		static Framework *Get() { return m_this; }
+
 		bool Init(const FrameworkDesc &desc);
 		void Run();
 		void Close();
@@ -29,6 +31,7 @@ namespace D3D11Framework
 	protected:
 		bool m_frame();
 
+		static Framework *m_this;
 		Window *m_wnd;
 		Render *m_render;
 		InputMgr *m_input;

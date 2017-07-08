@@ -5,12 +5,15 @@
 namespace D3D11Framework
 {
 	//------------------------------------------------------------------
+	Framework *Framework::m_this = nullptr;
+
 	Framework::Framework() :
 		m_wnd(nullptr),
 		m_render(nullptr),
 		m_input(nullptr),
 		m_init(false)
 	{
+		m_this = this;
 	}
 
 	Framework::~Framework()
