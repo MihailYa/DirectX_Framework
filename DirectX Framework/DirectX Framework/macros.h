@@ -6,4 +6,4 @@
 #define _CLOSE(p)		{ if(p){(p)->Close(); delete (p); (p)=nullptr;} }
 
 // Текущая версия фреймворка
-#define _VERSION_FRAMEWORK 3
+#define _VERSION_FRAMEWORK 4

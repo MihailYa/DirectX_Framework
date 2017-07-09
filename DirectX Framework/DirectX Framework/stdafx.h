@@ -15,6 +15,7 @@
 
 #include <d3dcompiler.h>
 #include <D3DX11async.h>
+#include <xnamath.h>
 
 #pragma comment(lib, "d3d11.lib")
 

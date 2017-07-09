@@ -5,3 +5,4 @@
 #include "Framework.h"
 #include "InputListener.h"
 #include "Render.h"
+#include "StaticMesh.h"
