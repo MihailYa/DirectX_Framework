@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "macros.h"
 #include "Render.h"
 #include "StaticMesh.h"
 

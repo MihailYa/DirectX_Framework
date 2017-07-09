@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Framework.h"
+#include "macros.h"
 #include "Log.h"
 
 namespace D3D11Framework
