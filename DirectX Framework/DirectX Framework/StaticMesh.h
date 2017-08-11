@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Render.h"
 
 namespace D3D11Framework

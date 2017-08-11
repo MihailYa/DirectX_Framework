@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClInclude Include="D3D11_Framework.h" />
     <ClInclude Include="Framework.h" />
+    <ClInclude Include="Image.h" />
     <ClInclude Include="InputCodes.h" />
     <ClInclude Include="InputListener.h" />
     <ClInclude Include="InputMgr.h" />
@@ -159,6 +160,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Framework.cpp" />
+    <ClCompile Include="Image.cpp" />
     <ClCompile Include="InputMgr.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="Render.cpp" />

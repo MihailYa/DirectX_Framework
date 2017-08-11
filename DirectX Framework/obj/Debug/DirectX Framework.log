@@ -100,6 +100,8 @@ c:\users\mikleya\documents\visual studio 2015\projects\github\directx\directx_fr
   Render.cpp
   Log.cpp
   InputMgr.cpp
+  Image.cpp
+c:\users\mikleya\documents\visual studio 2015\projects\github\directx\directx_framework\directx framework\directx framework\image.cpp(263): warning C4244: 'argument': conversion from 'int' to 'FLOAT', possible loss of data
   Framework.cpp
   Generating Code...
   DirectX Framework.vcxproj -> C:\Users\MikleYa\Documents\Visual Studio 2015\Projects\GitHub\DirectX\DirectX_Framework\DirectX Framework\\lib\DirectX Framework_d.lib

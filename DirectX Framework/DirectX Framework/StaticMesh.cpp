@@ -1,9 +1,11 @@
 #include "stdafx.h"
 #include "StaticMesh.h"
+
 #include "ms3dspec.h"
-#include <fstream>
-#include "macros.h"
 #include "Util.h"
+#include <fstream>
+
+#include "macros.h"
 
 using namespace D3D11Framework;
 using namespace std;
