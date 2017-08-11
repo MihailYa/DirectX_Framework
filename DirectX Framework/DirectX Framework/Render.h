@@ -1,4 +1,5 @@
 #pragma once
+#include "stdafx.h"
 
 namespace D3D11Framework
 {
@@ -7,6 +8,8 @@ namespace D3D11Framework
 	class Render
 	{
 		friend class StaticMesh;
+		friend class Image;
+
 	public:
 		Render();
 		virtual ~Render();

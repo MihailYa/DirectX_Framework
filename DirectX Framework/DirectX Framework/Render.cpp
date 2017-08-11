@@ -1,12 +1,12 @@
 #include "stdafx.h"
-#include "macros.h"
+
 #include "Render.h"
-#include "StaticMesh.h"
+
+#include "macros.h"
 
 namespace D3D11Framework
 {
 	//------------------------------------------------------------------
-
 
 	Render::Render()
 	{
