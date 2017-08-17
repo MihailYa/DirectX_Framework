@@ -61,7 +61,7 @@ namespace D3D11Framework
 			return false;
 		}
 
-		if (!m_render->Init(m_wnd->GetHWND()))
+		if (!m_render->Init())
 		{
 			Log::Get()->Err("Не удалось создать рендер");
 			return false;

@@ -7,6 +7,9 @@
 
 #include "macros.h"
 
+#include "Shader.h"
+#include "Buffer.h"
+
 using namespace D3D11Framework;
 using namespace std;
 
@@ -21,26 +24,28 @@ struct ConstantBuffer
 	XMMATRIX WVP;
 };
 
-StaticMesh::StaticMesh()
+StaticMesh::StaticMesh(Render *render)
 {
+	m_render = render;
 	m_vertexBuffer = nullptr;
 	m_indexBuffer = nullptr;
-	m_vertexShader = nullptr;
-	m_pixelShader = nullptr;
-	m_layout = nullptr;
-	m_pConstantBuffer = nullptr;
-	m_sampleState = nullptr;
-	m_texture = nullptr;
-	Identity();
+	m_constantBuffer = nullptr;
 }
 
-bool StaticMesh::Init(Render *render, wchar_t *name)
+bool StaticMesh::Init(wchar_t *name)
 {
-	m_objMatrix = XMMatrixIdentity();
-	m_render = render;
-	if (!m_loadMS3DFile(name))
+	Identity();
+
+	m_shader = new Shader(m_render);
+	if (!m_shader)
 		return false;
-	if (!m_InitShader(L"mesh.vs", L"mesh.ps"))
+
+	m_shader->AddInputElementDesc("POSITION", DXGI_FORMAT_R32G32B32_FLOAT);
+	m_shader->AddInputElementDesc("TEXCOORD", DXGI_FORMAT_R32G32_FLOAT);
+	if (!m_shader->CreateShader(L"mesh.vs", L"mesh.ps"))
+		return false;
+
+	if (!m_loadMS3DFile(name))
 		return false;
 
 	return true;
@@ -136,8 +141,10 @@ bool StaticMesh::m_loadMS3DFile(wchar_t *Filename)
 		}
 	}
 
-	if (!m_LoadTextures(CharToWChar(pMS3DMaterials[0].texture)))
+	wchar_t *name = CharToWChar(pMS3DMaterials[0].texture);
+	if (!m_shader->LoadTexture(name))
 		return false;
+	_DELETE_ARRAY(name);
 
 	_DELETE_ARRAY(pMS3DMaterials);
 	if (pMS3DGroups != nullptr)
@@ -149,34 +156,16 @@ bool StaticMesh::m_loadMS3DFile(wchar_t *Filename)
 	_DELETE_ARRAY(pMS3DTriangles);
 	_DELETE_ARRAY(pMS3DVertices);
 
-	D3D11_BUFFER_DESC bd;
-	ZeroMemory(&bd, sizeof(bd));
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(Vertex) * VertexCount;
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.CPUAccessFlags = 0;
-	D3D11_SUBRESOURCE_DATA Data;
-	ZeroMemory(&Data, sizeof(Data));
-	Data.pSysMem = vertices;
-	HRESULT hr = m_render->m_pd3dDevice->CreateBuffer(&bd, &Data, &m_vertexBuffer);
-	if (FAILED(hr))
+	m_vertexBuffer = Buffer::CreateVertexBuffer(m_render->m_pd3dDevice, sizeof(Vertex)*VertexCount, false, vertices);
+	if (!m_vertexBuffer)
 		return false;
 
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(WORD) * m_indexCount;
-	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	bd.CPUAccessFlags = 0;
-	Data.pSysMem = indices;
-	hr = m_render->m_pd3dDevice->CreateBuffer(&bd, &Data, &m_indexBuffer);
-	if (FAILED(hr))
+	m_indexBuffer = Buffer::CreateIndexBuffer(m_render->m_pd3dDevice, sizeof(unsigned short)*m_indexCount, false, indices);
+	if (!m_indexBuffer)
 		return false;
 
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(ConstantBuffer);
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bd.CPUAccessFlags = 0;
-	hr = m_render->m_pd3dDevice->CreateBuffer(&bd, NULL, &m_pConstantBuffer);
-	if (FAILED(hr))
+	m_constantBuffer = Buffer::CreateConstantBuffer(m_render->m_pd3dDevice, sizeof(ConstantBuffer), false);
+	if (!m_constantBuffer)
 		return false;
 
 	_DELETE_ARRAY(vertices);
@@ -185,16 +174,18 @@ bool StaticMesh::m_loadMS3DFile(wchar_t *Filename)
 	return true;
 }
 
-bool StaticMesh::m_LoadTextures(wchar_t *textureFilename)
+// Load texture
+/*bool StaticMesh::m_LoadTextures(wchar_t *textureFilename)
 {
 	HRESULT hr = D3DX11CreateShaderResourceViewFromFile(m_render->m_pd3dDevice, textureFilename, NULL, NULL, &m_texture, NULL);
 	if (FAILED(hr))
 		return false;
 
 	return true;
-}
+}*/
 
-bool StaticMesh::m_InitShader(wchar_t* vsFilename, wchar_t* psFilename)
+// Init shader
+/*bool StaticMesh::m_InitShader(wchar_t* vsFilename, wchar_t* psFilename)
 {
 	ID3D10Blob *vertexShaderBuffer = nullptr;
 	HRESULT hr = m_render->m_compileshaderfromfile(vsFilename, "VS", "vs_4_0", &vertexShaderBuffer);
@@ -259,7 +250,7 @@ bool StaticMesh::m_InitShader(wchar_t* vsFilename, wchar_t* psFilename)
 		return false;
 
 	return true;
-}
+}*/
 
 void StaticMesh::Draw(CXMMATRIX viewmatrix)
 {
@@ -282,32 +273,22 @@ void StaticMesh::m_SetShaderParameters(CXMMATRIX viewmatrix)
 	XMMATRIX WVP = m_objMatrix * viewmatrix * m_render->m_Projection;
 	ConstantBuffer cb;
 	cb.WVP = XMMatrixTranspose(WVP);
-	m_render->m_pImmediateContext->UpdateSubresource(m_pConstantBuffer, 0, NULL, &cb, 0, 0);
-
-	m_render->m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-
-	m_render->m_pImmediateContext->PSSetShaderResources(0, 1, &m_texture);
+	m_render->m_pImmediateContext->UpdateSubresource(m_constantBuffer, 0, NULL, &cb, 0, 0);
+	m_render->m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_constantBuffer);
 }
 
 void StaticMesh::m_RenderShader()
 {
-	m_render->m_pImmediateContext->IASetInputLayout(m_layout);
-	m_render->m_pImmediateContext->VSSetShader(m_vertexShader, NULL, 0);
-	m_render->m_pImmediateContext->PSSetShader(m_pixelShader, NULL, 0);
-	m_render->m_pImmediateContext->PSSetSamplers(0, 1, &m_sampleState);
+	m_shader->Draw();
 	m_render->m_pImmediateContext->DrawIndexed(m_indexCount, 0, 0);
 }
 
 void StaticMesh::Close()
 {
-	_RELEASE(m_texture);
 	_RELEASE(m_indexBuffer);
 	_RELEASE(m_vertexBuffer);
-	_RELEASE(m_pConstantBuffer);
-	_RELEASE(m_sampleState);
-	_RELEASE(m_layout);
-	_RELEASE(m_pixelShader);
-	_RELEASE(m_vertexShader);
+	_RELEASE(m_constantBuffer);
+	_CLOSE(m_shader);
 }
 
 void StaticMesh::Translate(float x, float y, float z)

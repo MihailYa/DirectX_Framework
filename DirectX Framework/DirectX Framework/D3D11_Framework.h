@@ -7,3 +7,5 @@
 #include "Render.h"
 #include "StaticMesh.h"
 #include "Image.h"
+#include "BitmapFont.h"
+#include "Text.h"

@@ -3,11 +3,17 @@
 #include "Render.h"
 
 #include "macros.h"
+#include "Log.h"
+
+#include "BitmapFont.h"
+#include "Text.h"
+#include "Image.h"
+#include "StaticMesh.h"
 
 namespace D3D11Framework
 {
 	//------------------------------------------------------------------
-
+	
 	Render::Render()
 	{
 		m_driverType = D3D_DRIVER_TYPE_NULL;
@@ -20,22 +26,65 @@ namespace D3D11Framework
 		m_pDepthStencilView = nullptr;
 		m_pDepthStencilState = nullptr;
 		m_pDepthDisabledStencilState = nullptr;
+		m_pAlphaEnableBlendingState = nullptr;
+		m_pAlphaDisableBlendingState = nullptr;
 	}
 
 	Render::~Render()
 	{
 	}
 
+	void Render::m_resize()
+	{
+		RECT rc;
+		GetClientRect(m_hwnd, &rc);
+		m_width = rc.right - rc.left;
+		m_height = rc.bottom - rc.top;
+	}
+
 	bool Render::CreateDevice(HWND hwnd)
 	{
-		//Успешность выполнения команд
-		HRESULT hr = S_OK;
+		m_hwnd = hwnd;
 
-		//Описание дисплея
-		RECT rc;
-		GetClientRect(hwnd, &rc);
-		UINT width = rc.right - rc.left;
-		UINT height = rc.bottom - rc.top;
+		m_resize();
+
+		if (!m_createdevice())
+		{
+			Log::Get()->Err("Не удалось создать DirectX Device");
+			return false;
+		}
+
+		if (!m_createdepthstencil())
+		{
+			Log::Get()->Err("Не удалось создать буфер глубины");
+			return false;
+		}
+
+		if (!m_createblendingstate())
+		{
+			Log::Get()->Err("Не удалось создать blending state");
+			return false;
+		}
+
+		m_pImmediateContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
+
+		D3D11_VIEWPORT vp;
+		vp.Width = (FLOAT)m_width;
+		vp.Height = (FLOAT)m_height;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		vp.TopLeftX = 0;
+		vp.TopLeftY = 0;
+		m_pImmediateContext->RSSetViewports(1, &vp);
+
+		m_initmatrix();
+
+		return Init();
+	}
+
+	bool Render::m_createdevice()
+	{
+		HRESULT hr = S_OK;
 
 		UINT createDeviceFlags = 0;
 #ifdef _DEBUG
@@ -62,13 +111,13 @@ namespace D3D11Framework
 		DXGI_SWAP_CHAIN_DESC sd;
 		ZeroMemory(&sd, sizeof(sd));	// очищаем структуру
 		sd.BufferCount = 1;				// у нас один задний буфер
-		sd.BufferDesc.Width = width;	// устанавливаем ширину буфера
-		sd.BufferDesc.Height = height;	// устанавливаем высоту
+		sd.BufferDesc.Width = m_width;	// устанавливаем ширину буфера
+		sd.BufferDesc.Height = m_height;	// устанавливаем высоту
 		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // формат пикселя
 		sd.BufferDesc.RefreshRate.Numerator = 60; // частота обновления экрана
 		sd.BufferDesc.RefreshRate.Denominator = 1;
 		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // назначение буфера
-		sd.OutputWindow = hwnd;			// десктриптор окна
+		sd.OutputWindow = m_hwnd;			// десктриптор окна
 		sd.SampleDesc.Count = 1;
 		sd.SampleDesc.Quality = 0;
 		sd.Windowed = TRUE;			// устанавливаем оконный режим
@@ -100,6 +149,28 @@ namespace D3D11Framework
 		if (FAILED(hr))
 			return false;
 
+		return true;
+	}
+
+	bool Render::m_createdepthstencil()
+	{
+		D3D11_TEXTURE2D_DESC descDepth;
+		ZeroMemory(&descDepth, sizeof(descDepth));
+		descDepth.Width = m_width;
+		descDepth.Height = m_height;
+		descDepth.MipLevels = 1;
+		descDepth.ArraySize = 1;
+		descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		descDepth.SampleDesc.Count = 1;
+		descDepth.SampleDesc.Quality = 0;
+		descDepth.Usage = D3D11_USAGE_DEFAULT;
+		descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		descDepth.CPUAccessFlags = 0;
+		descDepth.MiscFlags = 0;
+		HRESULT hr = m_pd3dDevice->CreateTexture2D(&descDepth, NULL, &m_pDepthStencil);
+		if (FAILED(hr))
+			return false;
+
 		D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
 		ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
 		depthStencilDesc.DepthEnable = true;
@@ -125,23 +196,6 @@ namespace D3D11Framework
 		if (FAILED(hr))
 			return false;
 
-		D3D11_TEXTURE2D_DESC descDepth;
-		ZeroMemory(&descDepth, sizeof(descDepth));
-		descDepth.Width = width;
-		descDepth.Height = height;
-		descDepth.MipLevels = 1;
-		descDepth.ArraySize = 1;
-		descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		descDepth.SampleDesc.Count = 1;
-		descDepth.SampleDesc.Quality = 0;
-		descDepth.Usage = D3D11_USAGE_DEFAULT;
-		descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		descDepth.CPUAccessFlags = 0;
-		descDepth.MiscFlags = 0;
-		hr = m_pd3dDevice->CreateTexture2D(&descDepth, NULL, &m_pDepthStencil);
-		if (FAILED(hr))
-			return false;
-
 		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
 		ZeroMemory(&descDSV, sizeof(descDSV));
 		descDSV.Format = descDepth.Format;
@@ -151,23 +205,41 @@ namespace D3D11Framework
 		if (FAILED(hr))
 			return false;
 
-		//Присоединение render target к конвееру рендеринга (rendering pipeline)
-		m_pImmediateContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
-
-		//Viewport
-		D3D11_VIEWPORT vp;
-		vp.Width = (FLOAT)width;
-		vp.Height = (FLOAT)height;
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-		vp.TopLeftX = 0;
-		vp.TopLeftY = 0;
-		m_pImmediateContext->RSSetViewports(1, &vp);
-
-		m_Projection = XMMatrixPerspectiveFovLH(0.4f*3.14f, (float)width / height, 1.0f, 1000.0f);
-
-		return Init(hwnd);
+		return true;
 	}
+
+	bool Render::m_createblendingstate()
+	{
+		D3D11_BLEND_DESC blendStateDescription;
+		ZeroMemory(&blendStateDescription, sizeof(D3D11_BLEND_DESC));
+		blendStateDescription.RenderTarget[0].BlendEnable = TRUE;
+		blendStateDescription.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		blendStateDescription.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		blendStateDescription.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		blendStateDescription.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		blendStateDescription.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		blendStateDescription.RenderTarget[0].RenderTargetWriteMask = 0x0f;
+		HRESULT hr = m_pd3dDevice->CreateBlendState(&blendStateDescription, &m_pAlphaEnableBlendingState);
+		if (FAILED(hr))
+			return false;
+
+		//Присоединение render target к конвееру рендеринга (rendering pipeline)
+		blendStateDescription.RenderTarget[0].BlendEnable = FALSE;
+		hr = m_pd3dDevice->CreateBlendState(&blendStateDescription, &m_pAlphaDisableBlendingState);
+		if (FAILED(hr))
+			return false;
+
+		return true;
+	}
+
+	void Render::m_initmatrix()
+	{
+		float aspect = (float)m_width / (float)m_height;
+		m_Projection = XMMatrixPerspectiveFovLH(0.4f*3.14f, aspect, 1.0f, 1000.0f);
+		m_Ortho = XMMatrixOrthographicLH((float)m_width, (float)m_height, 0.0f, 1.0f);
+	}
+
 
 	void Render::BeginFrame() {
 		//Очистка окна
@@ -190,6 +262,8 @@ namespace D3D11Framework
 		if (m_pImmediateContext)
 			m_pImmediateContext->ClearState();
 
+		_RELEASE(m_pAlphaEnableBlendingState);
+		_RELEASE(m_pAlphaDisableBlendingState);
 		_RELEASE(m_pDepthStencil);
 		_RELEASE(m_pDepthStencilView);
 		_RELEASE(m_pDepthStencilState);
@@ -199,6 +273,7 @@ namespace D3D11Framework
 		_RELEASE(m_pImmediateContext);
 		_RELEASE(m_pd3dDevice);
 	}
+
 
 	void Render::TurnZBufferOn()
 	{
@@ -210,7 +285,29 @@ namespace D3D11Framework
 		m_pImmediateContext->OMSetDepthStencilState(m_pDepthDisabledStencilState, 1);
 	}
 
-	HRESULT Render::m_compileshaderfromfile(WCHAR* FileName, LPCSTR EntryPoint, LPCSTR ShaderModel, ID3DBlob** ppBlobOut)
+
+	void Render::TurnOnAlphaBlending()
+	{
+		float blendFactor[4];
+		blendFactor[0] = 0.0f;
+		blendFactor[1] = 0.0f;
+		blendFactor[2] = 0.0f;
+		blendFactor[3] = 0.0f;
+		m_pImmediateContext->OMSetBlendState(m_pAlphaEnableBlendingState, blendFactor, 0xffffffff);
+	}
+
+	void Render::TurnOffAlphaBlending()
+	{
+		float blendFactor[4];
+		blendFactor[0] = 0.0f;
+		blendFactor[1] = 0.0f;
+		blendFactor[2] = 0.0f;
+		blendFactor[3] = 0.0f;
+		m_pImmediateContext->OMSetBlendState(m_pAlphaDisableBlendingState, blendFactor, 0xffffffff);
+	}
+
+	// Comile shader from file
+	/*HRESULT Render::m_compileshaderfromfile(WCHAR* FileName, LPCSTR EntryPoint, LPCSTR ShaderModel, ID3DBlob** ppBlobOut)
 	{
 		HRESULT hr = S_OK;
 
@@ -226,7 +323,7 @@ namespace D3D11Framework
 
 		_RELEASE(pErrorBlob);
 		return hr;
-	}
+	}*/
 
 	//------------------------------------------------------------------
 }

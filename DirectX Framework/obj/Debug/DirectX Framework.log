@@ -94,14 +94,20 @@ c:\program files (x86)\microsoft directx sdk (june 2010)\include\xnamathvector.i
 c:\program files (x86)\microsoft directx sdk (june 2010)\include\xnamathmisc.inl(518): warning C4838: conversion from 'unsigned int' to 'INT' requires a narrowing conversion
 c:\program files (x86)\microsoft directx sdk (june 2010)\include\xnamathmisc.inl(519): warning C4838: conversion from 'unsigned int' to 'INT' requires a narrowing conversion
   Window.cpp
+  Text.cpp
+c:\users\mikleya\documents\visual studio 2015\projects\github\directx\directx_framework\directx framework\directx framework\text.cpp(33): warning C4018: '<': signed/unsigned mismatch
   StaticMesh.cpp
 c:\users\mikleya\documents\visual studio 2015\projects\github\directx\directx_framework\directx framework\directx framework\util.h(8): warning C4996: 'mbstowcs': This function or variable may be unsafe. Consider using mbstowcs_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(920): note: see declaration of 'mbstowcs'
+  Shader.cpp
   Render.cpp
   Log.cpp
   InputMgr.cpp
   Image.cpp
-c:\users\mikleya\documents\visual studio 2015\projects\github\directx\directx_framework\directx framework\directx framework\image.cpp(263): warning C4244: 'argument': conversion from 'int' to 'FLOAT', possible loss of data
   Framework.cpp
+  Buffer.cpp
+  BitmapFont.cpp
+c:\users\mikleya\documents\visual studio 2015\projects\github\directx\directx_framework\directx framework\directx framework\util.h(8): warning C4996: 'mbstowcs': This function or variable may be unsafe. Consider using mbstowcs_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(920): note: see declaration of 'mbstowcs'
   Generating Code...
   DirectX Framework.vcxproj -> C:\Users\MikleYa\Documents\Visual Studio 2015\Projects\GitHub\DirectX\DirectX_Framework\DirectX Framework\\lib\DirectX Framework_d.lib
